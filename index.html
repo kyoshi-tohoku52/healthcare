@@ -4,14 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>健康管理アプリ</title>
-
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon.png">
+  
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="健康管理アプリ">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#2563eb">
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -319,7 +320,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .modal-header h2 {
       margin: 0;
@@ -333,6 +334,40 @@
       cursor: pointer;
       color: var(--text-muted);
     }
+
+    /* モーダル内部のタブ切り替えデザイン */
+    .modal-tab-bar {
+      display: flex;
+      background: #f1f5f9;
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 14px;
+    }
+    .modal-tab-btn {
+      flex: 1;
+      padding: 8px 0;
+      text-align: center;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .modal-tab-btn.active {
+      background: var(--card);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      font-weight: 700;
+    }
+    .modal-tab-pane {
+      display: none;
+    }
+    .modal-tab-pane.active {
+      display: block;
+    }
+
     .backup-box {
       background: #f1f5f9;
       border-radius: 10px;
@@ -494,97 +529,116 @@
 <!-- 右下フローティングアクションボタン（FAB） -->
 <button class="fab-btn" onclick="openUniversalModal()" title="データを登録">＋</button>
 
-<!-- ================= モーダル1: 一括データ登録 ================= -->
+<!-- ================= モーダル1: データ登録（タブ切り替え式） ================= -->
 <div id="universal-modal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
-      <h2>📝 日次データ一括登録</h2>
+      <h2>📝 データ登録</h2>
       <button class="close-btn" onclick="closeUniversalModal()">&times;</button>
     </div>
 
     <form id="form-universal">
-      <div class="form-group">
+      <!-- 共通：日付選択 -->
+      <div class="form-group" style="margin-bottom: 10px;">
         <label>対象日付</label>
         <input type="date" id="modal-date" required onchange="loadDateIntoModal(this.value)">
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-        <div class="form-group">
-          <label>体重 (kg)</label>
-          <input type="number" step="0.1" id="modal-weight" placeholder="70.0">
-        </div>
-        <div class="form-group">
-          <label>歩数 (歩)</label>
-          <input type="number" step="100" id="modal-steps" placeholder="8000">
-        </div>
+      <!-- モーダル内タブ切り替えボタン -->
+      <div class="modal-tab-bar">
+        <button type="button" class="modal-tab-btn active" onclick="switchModalTab('diet')">🍽️ 食事</button>
+        <button type="button" class="modal-tab-btn" onclick="switchModalTab('body')">⚖️ 体重・歩数</button>
+        <button type="button" class="modal-tab-btn" onclick="switchModalTab('workout')">💪 筋トレ</button>
       </div>
 
       <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handleImageUpload(event)">
-      
-      <div class="meal-block">
-        <div class="meal-header">
-          <span class="meal-title">☀️ 朝食（食堂）</span>
-          <button type="button" class="btn-camera" onclick="triggerCamera('b')">📸 撮影 / 解析</button>
+
+      <!-- パネル1: 食事入力（カメラ解析） -->
+      <div id="modal-pane-diet" class="modal-tab-pane active">
+        <div class="meal-block">
+          <div class="meal-header">
+            <span class="meal-title">☀️ 朝食 </span>
+            <button type="button" class="btn-camera" onclick="triggerCamera('b')">📸 撮影 / 解析</button>
+          </div>
+          <div class="meal-inputs">
+            <input type="number" id="meal-b-cal" placeholder="kcal">
+            <input type="number" id="meal-b-p" placeholder="P (g)">
+          </div>
+          <div class="meal-status" id="status-b"></div>
         </div>
-        <div class="meal-inputs">
-          <input type="number" id="meal-b-cal" placeholder="kcal">
-          <input type="number" id="meal-b-p" placeholder="P (g)">
+
+        <div class="meal-block">
+          <div class="meal-header">
+            <span class="meal-title">🍱 昼食 </span>
+            <button type="button" class="btn-camera" onclick="triggerCamera('l')">📸 撮影 / 解析</button>
+          </div>
+          <div class="meal-inputs">
+            <input type="number" id="meal-l-cal" placeholder="kcal">
+            <input type="number" id="meal-l-p" placeholder="P (g)">
+          </div>
+          <div class="meal-status" id="status-l"></div>
         </div>
-        <div class="meal-status" id="status-b"></div>
+
+        <div class="meal-block">
+          <div class="meal-header">
+            <span class="meal-title">🌙 夕食 </span>
+            <button type="button" class="btn-camera" onclick="triggerCamera('d')">📸 撮影 / 解析</button>
+          </div>
+          <div class="meal-inputs">
+            <input type="number" id="meal-d-cal" placeholder="kcal">
+            <input type="number" id="meal-d-p" placeholder="P (g)">
+          </div>
+          <div class="meal-status" id="status-d"></div>
+        </div>
+
+        <div class="meal-block">
+          <div class="meal-header">
+            <span class="meal-title">🥤 間食 </span>
+            <button type="button" class="btn-camera" onclick="triggerCamera('s')">📸 撮影 / 解析</button>
+          </div>
+          <div class="meal-inputs">
+            <input type="number" id="meal-s-cal" placeholder="kcal">
+            <input type="number" id="meal-s-p" placeholder="P (g)">
+          </div>
+          <div class="meal-status" id="status-s"></div>
+        </div>
       </div>
 
-      <div class="meal-block">
-        <div class="meal-header">
-          <span class="meal-title">🍱 昼食（外食・コンビニ）</span>
-          <button type="button" class="btn-camera" onclick="triggerCamera('l')">📸 撮影 / 解析</button>
+      <!-- パネル2: 体重・歩数入力 -->
+      <div id="modal-pane-body" class="modal-tab-pane">
+        <div class="card" style="box-shadow:none; border:1px solid var(--border); padding:14px; margin-bottom:12px;">
+          <div class="form-group">
+            <label>朝の体重 (kg)</label>
+            <input type="number" step="0.1" id="modal-weight" placeholder="70.0">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>日次歩数 (歩)</label>
+            <input type="number" step="100" id="modal-steps" placeholder="8000">
+          </div>
         </div>
-        <div class="meal-inputs">
-          <input type="number" id="meal-l-cal" placeholder="kcal">
-          <input type="number" id="meal-l-p" placeholder="P (g)">
-        </div>
-        <div class="meal-status" id="status-l"></div>
       </div>
 
-      <div class="meal-block">
-        <div class="meal-header">
-          <span class="meal-title">🌙 夕食（食堂）</span>
-          <button type="button" class="btn-camera" onclick="triggerCamera('d')">📸 撮影 / 解析</button>
+      <!-- パネル3: 筋トレ入力 -->
+      <div id="modal-pane-workout" class="modal-tab-pane">
+        <div class="card" style="box-shadow:none; border:1px solid var(--border); padding:14px; margin-bottom:12px;">
+          <div class="form-group">
+            <label>運動・筋トレメニュー</label>
+            <select id="modal-workout-type">
+              <option value="なし（休養）">なし（休養）</option>
+              <option value="部屋トレ15分（胸・肩・脚）">部屋トレ15分（胸・肩・脚）</option>
+              <option value="ジム Day A（胸・肩・三頭）">ジム Day A（胸・肩・三頭）</option>
+              <option value="ジム Day B（背中・脚・二頭）">ジム Day B（背中・脚・二頭）</option>
+              <option value="その他・ウォーキング等">その他・ウォーキング等</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>トレーニングメモ</label>
+            <textarea id="modal-workout-memo" rows="3" placeholder="例: インクラインダンベル 16kg 10回3セットクリア"></textarea>
+          </div>
         </div>
-        <div class="meal-inputs">
-          <input type="number" id="meal-d-cal" placeholder="kcal">
-          <input type="number" id="meal-d-p" placeholder="P (g)">
-        </div>
-        <div class="meal-status" id="status-d"></div>
       </div>
 
-      <div class="meal-block">
-        <div class="meal-header">
-          <span class="meal-title">🥤 間食・プロテイン</span>
-          <button type="button" class="btn-camera" onclick="triggerCamera('s')">📸 撮影 / 解析</button>
-        </div>
-        <div class="meal-inputs">
-          <input type="number" id="meal-s-cal" placeholder="kcal">
-          <input type="number" id="meal-s-p" placeholder="P (g)">
-        </div>
-        <div class="meal-status" id="status-s"></div>
-      </div>
-
-      <div class="form-group">
-        <label>筋トレ・運動</label>
-        <select id="modal-workout-type">
-          <option value="なし（休養）">なし（休養）</option>
-          <option value="部屋トレ15分（胸・肩・脚）">部屋トレ15分（胸・肩・脚）</option>
-          <option value="ジム Day A（胸・肩・三頭）">ジム Day A（インクラインDB・チェストプレス・サイドレイズ）</option>
-          <option value="ジム Day B（背中・脚・二頭）">ジム Day B（ラットプル・ケーブルロー・レッグプレス）</option>
-          <option value="その他・ウォーキング等">その他・ウォーキング等</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>トレーニングメモ</label>
-        <textarea id="modal-workout-memo" rows="2" placeholder="例: インクラインダンベル 16kg 10回3セットクリア"></textarea>
-      </div>
-
-      <button type="submit" class="btn" style="margin-top:10px;">すべてのデータを確定保存</button>
+      <button type="submit" class="btn" style="margin-top:8px;">データを保存</button>
     </form>
   </div>
 </div>
@@ -695,7 +749,6 @@
   const STORAGE_KEY = 'fit_tracker_core_data_v1';
   const SETTINGS_KEY = 'fit_tracker_core_settings_v1';
 
-  // 90日後の期日を初期値に設定
   const defaultTargetDate = new Date();
   defaultTargetDate.setDate(defaultTargetDate.getDate() + 90);
   const defaultTargetDateStr = defaultTargetDate.toISOString().split('T')[0];
@@ -723,6 +776,16 @@
   let chartDietInst = null;
   let chartStepsInst = null;
   let currentAnalyzingTarget = null;
+
+  // モーダル内部のタブ切り替え
+  function switchModalTab(tabKey) {
+    document.querySelectorAll('.modal-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.modal-tab-pane').forEach(pane => pane.classList.remove('active'));
+
+    const tabMap = { 'diet': 0, 'body': 1, 'workout': 2 };
+    document.querySelectorAll('.modal-tab-btn')[tabMap[tabKey]].classList.add('active');
+    document.getElementById(`modal-pane-${tabKey}`).classList.add('active');
+  }
 
   function openSettingsModal() {
     document.getElementById('cfg-start-weight').value = userSettings.startWeight;
@@ -754,7 +817,7 @@
 
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(userSettings));
     closeSettingsModal();
-    alert('設定を保存しました！新しい期日と目標値で再計算します。');
+    alert('設定を保存しました！');
     refreshAllViews();
   });
 
@@ -802,6 +865,7 @@
 
   function openUniversalModal() {
     loadDateIntoModal(document.getElementById('modal-date').value || todayStr);
+    switchModalTab('diet'); // 開いた時は食事タブを初期表示
     document.getElementById('universal-modal').classList.add('open');
   }
 
@@ -949,7 +1013,6 @@
     return `${d.getMonth()+1}月 W${weekNumber}`;
   }
 
-  // --- 画面レンダリング ＆ 着地体重シミュレーション ---
   function refreshAllViews() {
     const dates = getSortedDates();
     const balanceDates = [];
@@ -1025,7 +1088,6 @@
       }
     });
 
-    // 期日着地体重の予測ロジック（全タブ共通表示）
     const recentDeficits = deficits.slice(-14);
     const avgRecentDeficit = recentDeficits.length > 0 
       ? Math.round(recentDeficits.reduce((a, b) => a + b, 0) / recentDeficits.length)
@@ -1052,7 +1114,6 @@
       `;
     }
 
-    // 収支タブ
     document.getElementById('lbl-today-deficit-target').innerText = `本日の赤字 (目標: -${Math.round(totalTargetEnergy / (daysRemaining || 90))})`;
     document.getElementById('lbl-diet-cal-target').innerText = `本日合計 (目標: ${userSettings.targetCal})`;
     document.getElementById('lbl-diet-p-target').innerText = `たんぱく質 (目標: ${userSettings.targetProtein}g)`;
@@ -1096,7 +1157,6 @@
       `;
     }
 
-    // 1. 体重タブ
     if (weights.length > 0) {
       document.getElementById('metric-cur-weight').innerText = `${latestWeight.toFixed(1)} kg`;
       const emaList = computeEMA(weights);
@@ -1127,7 +1187,6 @@
       });
     }
 
-    // 2. 筋トレタブ
     document.getElementById('metric-workout-count').innerText = `${workoutLogs.length} 回`;
     if (workoutLogs.length > 0) {
       const lastW = workoutLogs[workoutLogs.length - 1];
@@ -1163,7 +1222,6 @@
       }
     });
 
-    // 3. 食事タブ
     if (dietDates.length > 0) {
       const ctxD = document.getElementById('chartDiet').getContext('2d');
       if (chartDietInst) chartDietInst.destroy();
@@ -1203,7 +1261,6 @@
       });
     }
 
-    // 4. 歩数タブ
     if (stepsList.length > 0) {
       document.getElementById('metric-latest-steps').innerText = `${latestSteps.toLocaleString()} 歩`;
       const rate = Math.min(100, Math.round((latestSteps / userSettings.targetSteps) * 100));
@@ -1291,7 +1348,6 @@
     });
   }
 
-  // 6:15, 12:15, 19:15, 23:00 の未入力チェック
   function checkScheduledReminders() {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
 
@@ -1326,7 +1382,7 @@
         sessionStorage.setItem(notifyKey, "true");
       }
     }
-    // 23:00 締めくくりチェック（1日の終わり）
+    // 23:00 締めくくりチェック
     else if (hours === 23 && minutes >= 0 && minutes <= 20) {
       const missing = [];
       if (todayLog.weight === null) missing.push("体重");
