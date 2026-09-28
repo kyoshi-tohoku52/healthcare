@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>健康管理アプリ</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="健康管理アプリ">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#2563eb">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0 0 calc(75px + env(safe-area-inset-bottom)) 0;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+    .header {
+      background: var(--card);
+      padding: calc(12px + env(safe-area-inset-top)) 16px 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .btn-settings-icon {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 14px 16px;
+    }
+
+    /* 全タブ共通：着地予測カード */
+    .prediction-card {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: white;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+    }
+    .prediction-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+    .prediction-val {
+      font-size: 1.55rem;
+      font-weight: 800;
+      margin: 3px 0;
+    }
+    .prediction-sub {
+      font-size: 0.74rem;
+      opacity: 0.88;
+      line-height: 1.4;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      border: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--primary);
+      padding-left: 8px;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .metric-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .metric-val {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .metric-lbl {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .progress-bar-container {
+      background: #e2e8f0;
+      border-radius: 9999px;
+      height: 12px;
+      overflow: hidden;
+      margin: 10px 0 6px 0;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      height: 100%;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .form-group { margin-bottom: 12px; }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #fff;
+    }
+    .meal-block {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .meal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .meal-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #334155;
+    }
+    .btn-camera {
+      background: #475569;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .meal-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .meal-status {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:active { opacity: 0.85; }
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(60px + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .nav-item {
+      flex: 1;
+      text-align: center;
+      padding: 6px 0;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .nav-icon {
+      font-size: 1.15rem;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .log-list {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+    .log-item {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .log-item:last-child { border-bottom: none; }
+    canvas {
+      width: 100% !important;
+      max-height: 240px;
+    }
+
+    .fab-btn {
+      position: fixed;
+      bottom: calc(75px + env(safe-area-inset-bottom));
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 150;
+      transition: transform 0.15s ease;
+    }
+    .fab-btn:active { transform: scale(0.92); }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-content {
+      background: var(--card);
+      border-radius: 16px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      color: var(--primary);
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.6rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .backup-box {
+      background: #f1f5f9;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 14px;
+      border: 1px dashed var(--border);
+    }
+    .notify-toggle-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #eff6ff;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 12px;
+      border: 1px solid #bfdbfe;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1 id="view-title">健康管理アプリ</h1>
+  <button class="btn-settings-icon" onclick="openSettingsModal()" title="目標・設定を変更">
+    ⚙️ <span style="font-size:0.8rem; font-weight:600;">設定</span>
+  </button>
+</div>
+
+<div class="container">
+
+  <!-- ================= 全タブ共通：期日着地予測カード ================= -->
+  <div class="prediction-card">
+    <div class="prediction-title" id="pred-header">🎯 目標期日の着地予測体重</div>
+    <div class="prediction-val" id="pred-weight">計算中...</div>
+    <div class="prediction-sub" id="pred-detail">直近のカロリー収支ペースから予測しています</div>
+  </div>
+
+  <!-- ================= タブ0: 全体カロリー収支 ================= -->
+  <div id="tab-balance" class="tab-content active">
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="metric-val" id="metric-today-deficit">-- kcal</div>
+        <div class="metric-lbl" id="lbl-today-deficit-target">本日の赤字</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" id="metric-total-deficit">-- kcal</div>
+        <div class="metric-lbl">累計赤字カロリー</div>
+      </div>
+    </div>
+
+    <!-- 減量進捗バー -->
+    <div class="card">
+      <div class="card-title" id="title-progress-bar">🎯 減量 累計エネルギー進捗</div>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progress-fat-loss"></div>
+      </div>
+      <div class="progress-labels">
+        <span id="label-fat-burnt">脂肪換算: 0.0 kg 燃焼</span>
+        <span id="label-total-target-cal">目標: -72,000 kcal</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">日次カロリー収支（黄: 摂取 vs 青: 消費）</div>
+      <canvas id="chartBalance"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">直近の減量ペース診断</div>
+      <div style="font-size:0.85rem; line-height: 1.6; color:#334155;" id="weekly-balance-summary">
+        データ収集中...
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= タブ1: 体重 ================= -->
+  <div id="tab-weight" class="tab-content">
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="metric-val" id="metric-cur-weight">-- kg</div>
+        <div class="metric-lbl">最新実測値</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" id="metric-ema-weight">-- kg</div>
+        <div class="metric-lbl">トレンド (EMA)</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="chart-weight-title">体重推移 vs 理想減量ペース</div>
+      <canvas id="chartWeight"></canvas>
+    </div>
+  </div>
+
+  <!-- ================= タブ2: 筋トレ ================= -->
+  <div id="tab-workout" class="tab-content">
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="metric-val" id="metric-workout-count">0 回</div>
+        <div class="metric-lbl">累計ワークアウト日数</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" id="metric-last-workout">--</div>
+        <div class="metric-lbl">直近のメニュー</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">週別ワークアウト頻度 (目標: 週2〜3回)</div>
+      <canvas id="chartWorkout"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">直近のトレーニング履歴</div>
+      <div class="log-list" id="workout-history"></div>
+    </div>
+  </div>
+
+  <!-- ================= タブ3: 食事 ================= -->
+  <div id="tab-diet" class="tab-content">
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="metric-val" id="metric-today-cal">0 kcal</div>
+        <div class="metric-lbl" id="lbl-diet-cal-target">本日合計</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" id="metric-today-protein">0 g</div>
+        <div class="metric-lbl" id="lbl-diet-p-target">たんぱく質</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">カロリー ＆ たんぱく質 推移</div>
+      <canvas id="chartDiet"></canvas>
+    </div>
+  </div>
+
+  <!-- ================= タブ4: 歩数 ================= -->
+  <div id="tab-steps" class="tab-content">
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="metric-val" id="metric-latest-steps">-- 歩</div>
+        <div class="metric-lbl">最新歩数</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val" id="metric-goal-rate">-- %</div>
+        <div class="metric-lbl" id="lbl-steps-target">目標達成率</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="chart-steps-title">日次歩数推移</div>
+      <canvas id="chartSteps"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- 右下フローティングアクションボタン（FAB） -->
+<button class="fab-btn" onclick="openUniversalModal()" title="データを登録">＋</button>
+
+<!-- ================= モーダル1: 一括データ登録 ================= -->
+<div id="universal-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>📝 日次データ一括登録</h2>
+      <button class="close-btn" onclick="closeUniversalModal()">&times;</button>
+    </div>
+
+    <form id="form-universal">
+      <div class="form-group">
+        <label>対象日付</label>
+        <input type="date" id="modal-date" required onchange="loadDateIntoModal(this.value)">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="form-group">
+          <label>体重 (kg)</label>
+          <input type="number" step="0.1" id="modal-weight" placeholder="70.0">
+        </div>
+        <div class="form-group">
+          <label>歩数 (歩)</label>
+          <input type="number" step="100" id="modal-steps" placeholder="8000">
+        </div>
+      </div>
+
+      <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handleImageUpload(event)">
+      
+      <div class="meal-block">
+        <div class="meal-header">
+          <span class="meal-title">☀️ 朝食（食堂）</span>
+          <button type="button" class="btn-camera" onclick="triggerCamera('b')">📸 撮影 / 解析</button>
+        </div>
+        <div class="meal-inputs">
+          <input type="number" id="meal-b-cal" placeholder="kcal">
+          <input type="number" id="meal-b-p" placeholder="P (g)">
+        </div>
+        <div class="meal-status" id="status-b"></div>
+      </div>
+
+      <div class="meal-block">
+        <div class="meal-header">
+          <span class="meal-title">🍱 昼食（外食・コンビニ）</span>
+          <button type="button" class="btn-camera" onclick="triggerCamera('l')">📸 撮影 / 解析</button>
+        </div>
+        <div class="meal-inputs">
+          <input type="number" id="meal-l-cal" placeholder="kcal">
+          <input type="number" id="meal-l-p" placeholder="P (g)">
+        </div>
+        <div class="meal-status" id="status-l"></div>
+      </div>
+
+      <div class="meal-block">
+        <div class="meal-header">
+          <span class="meal-title">🌙 夕食（食堂）</span>
+          <button type="button" class="btn-camera" onclick="triggerCamera('d')">📸 撮影 / 解析</button>
+        </div>
+        <div class="meal-inputs">
+          <input type="number" id="meal-d-cal" placeholder="kcal">
+          <input type="number" id="meal-d-p" placeholder="P (g)">
+        </div>
+        <div class="meal-status" id="status-d"></div>
+      </div>
+
+      <div class="meal-block">
+        <div class="meal-header">
+          <span class="meal-title">🥤 間食・プロテイン</span>
+          <button type="button" class="btn-camera" onclick="triggerCamera('s')">📸 撮影 / 解析</button>
+        </div>
+        <div class="meal-inputs">
+          <input type="number" id="meal-s-cal" placeholder="kcal">
+          <input type="number" id="meal-s-p" placeholder="P (g)">
+        </div>
+        <div class="meal-status" id="status-s"></div>
+      </div>
+
+      <div class="form-group">
+        <label>筋トレ・運動</label>
+        <select id="modal-workout-type">
+          <option value="なし（休養）">なし（休養）</option>
+          <option value="部屋トレ15分（胸・肩・脚）">部屋トレ15分（胸・肩・脚）</option>
+          <option value="ジム Day A（胸・肩・三頭）">ジム Day A（インクラインDB・チェストプレス・サイドレイズ）</option>
+          <option value="ジム Day B（背中・脚・二頭）">ジム Day B（ラットプル・ケーブルロー・レッグプレス）</option>
+          <option value="その他・ウォーキング等">その他・ウォーキング等</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>トレーニングメモ</label>
+        <textarea id="modal-workout-memo" rows="2" placeholder="例: インクラインダンベル 16kg 10回3セットクリア"></textarea>
+      </div>
+
+      <button type="submit" class="btn" style="margin-top:10px;">すべてのデータを確定保存</button>
+    </form>
+  </div>
+</div>
+
+<!-- ================= モーダル2: 目標設定 & データ管理 ================= -->
+<div id="settings-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>⚙️ 目標設定 & データ管理</h2>
+      <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+    </div>
+
+    <form id="form-settings">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="form-group">
+          <label>スタート体重 (kg)</label>
+          <input type="number" step="0.1" id="cfg-start-weight" required>
+        </div>
+        <div class="form-group">
+          <label>目標体重 (kg)</label>
+          <input type="number" step="0.1" id="cfg-target-weight" required>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="form-group">
+          <label>目標期日 (完了日)</label>
+          <input type="date" id="cfg-target-date" required>
+        </div>
+        <div class="form-group">
+          <label>基準消費(TDEE) kcal</label>
+          <input type="number" id="cfg-tdee" placeholder="2100" required>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="form-group">
+          <label>目標摂取 kcal/日</label>
+          <input type="number" id="cfg-target-cal" placeholder="1450" required>
+        </div>
+        <div class="form-group">
+          <label>目標たんぱく質 g/日</label>
+          <input type="number" id="cfg-target-p" placeholder="120" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>目標歩数 (歩/日)</label>
+        <input type="number" step="500" id="cfg-target-steps" placeholder="8000" required>
+      </div>
+
+      <div class="form-group">
+        <label>Google Gemini API Key (写真解析用)</label>
+        <input type="password" id="cfg-api-key" placeholder="AIzaSy...">
+      </div>
+
+      <button type="submit" class="btn" style="margin-top:10px;">設定を保存して反映</button>
+    </form>
+
+    <!-- 定時リマインダー通知設定 -->
+    <div class="notify-toggle-box">
+      <div>
+        <div style="font-size:0.85rem; font-weight:700; color:#1e3a8a;">🔔 未入力リマインダー通知</div>
+        <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">
+          06:15(朝)・12:15(昼)・19:15(夕)・23:00(締め)
+        </div>
+      </div>
+      <button type="button" class="btn" style="width:auto; padding:8px 14px; font-size:0.8rem;" id="btn-toggle-notify" onclick="toggleNotificationPermission()">
+        通知を許可
+      </button>
+    </div>
+
+    <!-- データ引き継ぎ・バックアップ管理 -->
+    <div class="backup-box">
+      <div style="font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:6px;">📦 データ引き継ぎ・バックアップ</div>
+      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">
+        アプリ更新や機種変更の際は、JSONファイルとしてバックアップ・復元できます。
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <button type="button" class="btn" style="background:#475569; padding:9px; font-size:0.8rem;" onclick="exportBackupData()">💾 出力(保存)</button>
+        <button type="button" class="btn" style="background:#0284c7; padding:9px; font-size:0.8rem;" onclick="document.getElementById('import-file-input').click()">📂 復元(読込)</button>
+      </div>
+      <input type="file" id="import-file-input" accept=".json" style="display:none;" onchange="importBackupData(event)">
+    </div>
+  </div>
+</div>
+
+<!-- 下部ナビゲーションバー -->
+<div class="bottom-nav">
+  <button class="nav-item active" onclick="switchTab('balance', '健康管理アプリ')">
+    <span class="nav-icon">📊</span>収支
+  </button>
+  <button class="nav-item" onclick="switchTab('weight', '健康管理アプリ')">
+    <span class="nav-icon">⚖️</span>体重
+  </button>
+  <button class="nav-item" onclick="switchTab('workout', '健康管理アプリ')">
+    <span class="nav-icon">💪</span>筋トレ
+  </button>
+  <button class="nav-item" onclick="switchTab('diet', '健康管理アプリ')">
+    <span class="nav-icon">🍽️</span>食事
+  </button>
+  <button class="nav-item" onclick="switchTab('steps', '健康管理アプリ')">
+    <span class="nav-icon">👟</span>歩数
+  </button>
+</div>
+
+<script>
+  const STORAGE_KEY = 'fit_tracker_core_data_v1';
+  const SETTINGS_KEY = 'fit_tracker_core_settings_v1';
+
+  // 90日後の期日を初期値に設定
+  const defaultTargetDate = new Date();
+  defaultTargetDate.setDate(defaultTargetDate.getDate() + 90);
+  const defaultTargetDateStr = defaultTargetDate.toISOString().split('T')[0];
+
+  const defaultSettings = {
+    startWeight: 70.0,
+    targetWeight: 60.0,
+    targetDate: defaultTargetDateStr,
+    tdee: 2100,
+    targetCal: 1450,
+    targetProtein: 120,
+    targetSteps: 8000,
+    apiKey: ''
+  };
+
+  let appData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"logs":{}}');
+  let userSettings = Object.assign({}, defaultSettings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'));
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-date').value = todayStr;
+
+  let chartBalanceInst = null;
+  let chartWeightInst = null;
+  let chartWorkoutInst = null;
+  let chartDietInst = null;
+  let chartStepsInst = null;
+  let currentAnalyzingTarget = null;
+
+  function openSettingsModal() {
+    document.getElementById('cfg-start-weight').value = userSettings.startWeight;
+    document.getElementById('cfg-target-weight').value = userSettings.targetWeight;
+    document.getElementById('cfg-target-date').value = userSettings.targetDate || defaultTargetDateStr;
+    document.getElementById('cfg-tdee').value = userSettings.tdee;
+    document.getElementById('cfg-target-cal').value = userSettings.targetCal;
+    document.getElementById('cfg-target-p').value = userSettings.targetProtein;
+    document.getElementById('cfg-target-steps').value = userSettings.targetSteps;
+    document.getElementById('cfg-api-key').value = userSettings.apiKey || '';
+    updateNotifyButtonUI();
+    document.getElementById('settings-modal').classList.add('open');
+  }
+
+  function closeSettingsModal() {
+    document.getElementById('settings-modal').classList.remove('open');
+  }
+
+  document.getElementById('form-settings').addEventListener('submit', (e) => {
+    e.preventDefault();
+    userSettings.startWeight = parseFloat(document.getElementById('cfg-start-weight').value);
+    userSettings.targetWeight = parseFloat(document.getElementById('cfg-target-weight').value);
+    userSettings.targetDate = document.getElementById('cfg-target-date').value;
+    userSettings.tdee = parseInt(document.getElementById('cfg-tdee').value, 10);
+    userSettings.targetCal = parseInt(document.getElementById('cfg-target-cal').value, 10);
+    userSettings.targetProtein = parseInt(document.getElementById('cfg-target-p').value, 10);
+    userSettings.targetSteps = parseInt(document.getElementById('cfg-target-steps').value, 10);
+    userSettings.apiKey = document.getElementById('cfg-api-key').value.trim();
+
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(userSettings));
+    closeSettingsModal();
+    alert('設定を保存しました！新しい期日と目標値で再計算します。');
+    refreshAllViews();
+  });
+
+  function exportBackupData() {
+    const backupObj = {
+      appData: appData,
+      userSettings: userSettings,
+      exportedAt: new Date().toISOString()
+    };
+    const jsonStr = JSON.stringify(backupObj, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `health_tracker_backup_${todayStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importBackupData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (imported.appData && imported.userSettings) {
+          appData = imported.appData;
+          userSettings = imported.userSettings;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(userSettings));
+          alert('データの復元が完了しました！');
+          closeSettingsModal();
+          refreshAllViews();
+        } else {
+          throw new Error('形式が不正です');
+        }
+      } catch (err) {
+        alert('バックアップファイルの読み込みに失敗しました。');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  function openUniversalModal() {
+    loadDateIntoModal(document.getElementById('modal-date').value || todayStr);
+    document.getElementById('universal-modal').classList.add('open');
+  }
+
+  function closeUniversalModal() {
+    document.getElementById('universal-modal').classList.remove('open');
+  }
+
+  function triggerCamera(target) {
+    if (!userSettings.apiKey) {
+      alert('右上の「⚙️ 設定」からGemini APIキーを登録してください。');
+      return;
+    }
+    currentAnalyzingTarget = target;
+    document.getElementById('camera-input').click();
+  }
+
+  async function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file || !currentAnalyzingTarget) return;
+
+    const target = currentAnalyzingTarget;
+    const statusEl = document.getElementById(`status-${target}`);
+    statusEl.innerText = "⏳ AIが料理を解析中...";
+
+    try {
+      const base64Data = await fileToBase64(file);
+      const prompt = `この食事の写真から、メニュー内容を推定し、カロリーとたんぱく質（PFC）を概算してください。
+日本の食堂やコンビニ食を想定し、ご飯の量や油の使用感も考慮してください。
+必ず以下のJSON形式のみを出力してください（Markdown不要）:
+{"menu": "料理名", "calories": 500, "protein": 25}`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userSettings.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: file.type, data: base64Data } }
+            ]
+          }]
+        })
+      });
+
+      if (!response.ok) throw new Error(`APIエラー: ${response.status}`);
+
+      const resData = await response.json();
+      const rawText = resData.candidates[0].content.parts[0].text.trim();
+      const cleanJson = rawText.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+
+      document.getElementById(`meal-${target}-cal`).value = parsed.calories || 0;
+      document.getElementById(`meal-${target}-p`).value = parsed.protein || 0;
+      statusEl.innerHTML = `✅ <b>${parsed.menu || '解析完了'}</b> (${parsed.calories}kcal / P${parsed.protein}g)`;
+    } catch (err) {
+      console.error(err);
+      statusEl.innerText = "❌ 解析に失敗しました。手動で入力してください。";
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = error => reject(error);
+    });
+  }
+
+  function getSortedDates() {
+    return Object.keys(appData.logs).sort();
+  }
+
+  function getOrInitLog(dateStr) {
+    if (!appData.logs[dateStr]) {
+      appData.logs[dateStr] = {
+        weight: null,
+        workout: null,
+        workoutMemo: '',
+        meals: { bCal: 0, bP: 0, lCal: 0, lP: 0, dCal: 0, dP: 0, sCal: 0, sP: 0 },
+        steps: null
+      };
+    }
+    return appData.logs[dateStr];
+  }
+
+  function saveAppData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  }
+
+  function switchTab(tabKey, titleText) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(`tab-${tabKey}`).classList.add('active');
+    document.getElementById('view-title').innerText = titleText;
+    
+    const idx = ['balance', 'weight', 'workout', 'diet', 'steps'].indexOf(tabKey);
+    document.querySelectorAll('.nav-item')[idx].classList.add('active');
+
+    if (tabKey === 'balance' && chartBalanceInst) chartBalanceInst.resize();
+    if (tabKey === 'weight' && chartWeightInst) chartWeightInst.resize();
+    if (tabKey === 'workout' && chartWorkoutInst) chartWorkoutInst.resize();
+    if (tabKey === 'diet' && chartDietInst) chartDietInst.resize();
+    if (tabKey === 'steps' && chartStepsInst) chartStepsInst.resize();
+  }
+
+  function computeEMA(weights, span = 7) {
+    const k = 2 / (span + 1);
+    let ema = [];
+    weights.forEach((val, idx) => {
+      if (idx === 0) ema.push(val);
+      else ema.push(val * k + ema[idx - 1] * (1 - k));
+    });
+    return ema;
+  }
+
+  function loadDateIntoModal(dateStr) {
+    const log = getOrInitLog(dateStr);
+    document.getElementById('modal-weight').value = log.weight !== null ? log.weight : '';
+    document.getElementById('modal-steps').value = log.steps !== null ? log.steps : '';
+    
+    const m = log.meals || {};
+    document.getElementById('meal-b-cal').value = m.bCal || '';
+    document.getElementById('meal-b-p').value = m.bP || '';
+    document.getElementById('meal-l-cal').value = m.lCal || '';
+    document.getElementById('meal-l-p').value = m.lP || '';
+    document.getElementById('meal-d-cal').value = m.dCal || '';
+    document.getElementById('meal-d-p').value = m.dP || '';
+    document.getElementById('meal-s-cal').value = m.sCal || '';
+    document.getElementById('meal-s-p').value = m.sP || '';
+    ['b', 'l', 'd', 's'].forEach(t => document.getElementById(`status-${t}`).innerText = '');
+
+    document.getElementById('modal-workout-type').value = log.workout || 'なし（休養）';
+    document.getElementById('modal-workout-memo').value = log.workoutMemo || '';
+  }
+
+  function getWeekLabel(dStr) {
+    const d = new Date(dStr);
+    const start = new Date(d.getFullYear(), 0, 1);
+    const days = Math.floor((d - start) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.ceil((days + start.getDay() + 1) / 7);
+    return `${d.getMonth()+1}月 W${weekNumber}`;
+  }
+
+  // --- 画面レンダリング ＆ 着地体重シミュレーション ---
+  function refreshAllViews() {
+    const dates = getSortedDates();
+    const balanceDates = [];
+    const intakes = [];
+    const expenditures = [];
+    const deficits = [];
+    let totalDeficitKcal = 0;
+
+    const weightDates = [];
+    const weights = [];
+    const stepsDates = [];
+    const stepsList = [];
+    const dietDates = [];
+    const dietCals = [];
+    const dietProteins = [];
+    let workoutLogs = [];
+    const weeklyWorkouts = {};
+
+    let latestWeight = userSettings.startWeight;
+    let latestSteps = null;
+    let todayDeficit = 0;
+
+    const targetDateObj = new Date(userSettings.targetDate || defaultTargetDateStr);
+    const todayDateObj = new Date(todayStr);
+    const daysRemaining = Math.max(1, Math.round((targetDateObj - todayDateObj) / (1000 * 60 * 60 * 24)));
+    const targetLossKg = Math.max(0.1, userSettings.startWeight - userSettings.targetWeight);
+    const totalTargetEnergy = Math.round(targetLossKg * 7200);
+
+    dates.forEach(d => {
+      const entry = appData.logs[d];
+      
+      if (entry.weight !== null) {
+        weightDates.push(d.slice(5));
+        weights.push(entry.weight);
+        latestWeight = entry.weight;
+      }
+      if (entry.steps !== null) {
+        stepsDates.push(d.slice(5));
+        stepsList.push(entry.steps);
+        latestSteps = entry.steps;
+      }
+      if (entry.workout && !entry.workout.includes("休養")) {
+        workoutLogs.push({ date: d, type: entry.workout, memo: entry.workoutMemo });
+        const wLabel = getWeekLabel(d);
+        weeklyWorkouts[wLabel] = (weeklyWorkouts[wLabel] || 0) + 1;
+      }
+
+      const m = entry.meals || {};
+      const dayCal = (m.bCal||0) + (m.lCal||0) + (m.dCal||0) + (m.sCal||0);
+      const dayP   = (m.bP||0) + (m.lP||0) + (m.dP||0) + (m.sP||0);
+
+      if (dayCal > 0 || dayP > 0) {
+        dietDates.push(d.slice(5));
+        dietCals.push(dayCal);
+        dietProteins.push(dayP);
+
+        const stepBurn = (entry.steps || 7000) * 0.04;
+        const totalBurn = Math.round(userSettings.tdee + stepBurn);
+
+        balanceDates.push(d.slice(5));
+        intakes.push(dayCal);
+        expenditures.push(totalBurn);
+
+        const deficit = totalBurn - dayCal;
+        deficits.push(deficit);
+        totalDeficitKcal += deficit;
+
+        if (d === todayStr) {
+          todayDeficit = deficit;
+          document.getElementById('metric-today-cal').innerText = `${dayCal} kcal`;
+          document.getElementById('metric-today-protein').innerText = `${dayP} g`;
+        }
+      }
+    });
+
+    // 期日着地体重の予測ロジック（全タブ共通表示）
+    const recentDeficits = deficits.slice(-14);
+    const avgRecentDeficit = recentDeficits.length > 0 
+      ? Math.round(recentDeficits.reduce((a, b) => a + b, 0) / recentDeficits.length)
+      : Math.round(userSettings.tdee - userSettings.targetCal);
+
+    const projectedFutureDeficit = avgRecentDeficit * daysRemaining;
+    const projectedFutureFatLossKg = projectedFutureDeficit / 7200;
+    const projectedFinalWeight = (latestWeight - projectedFutureFatLossKg).toFixed(1);
+
+    const targetDateFormatted = `${targetDateObj.getMonth()+1}月${targetDateObj.getDate()}日`;
+    document.getElementById('pred-header').innerText = `🎯 ${targetDateFormatted}（残り${daysRemaining}日）の着地予測体重`;
+    document.getElementById('pred-weight').innerText = `${projectedFinalWeight} kg`;
+
+    const diffFromTarget = (projectedFinalWeight - userSettings.targetWeight).toFixed(1);
+    if (diffFromTarget <= 0) {
+      document.getElementById('pred-detail').innerHTML = `
+        🔥 <b style="color:#4ade80;">目標達成見込み！</b>（目標 ${userSettings.targetWeight}kg より ${Math.abs(diffFromTarget)}kg 余裕）<br>
+        直近ペース（1日平均赤字 ${avgRecentDeficit} kcal）を維持できれば達成可能です。
+      `;
+    } else {
+      document.getElementById('pred-detail').innerHTML = `
+        ⚠️ <b>現在のペースだと約 ${diffFromTarget}kg オーバー</b>（目標: ${userSettings.targetWeight}kg）<br>
+        目標達成には1日あたりあと <b>+${Math.round((diffFromTarget * 7200) / daysRemaining)} kcal</b> の赤字が必要です。
+      `;
+    }
+
+    // 収支タブ
+    document.getElementById('lbl-today-deficit-target').innerText = `本日の赤字 (目標: -${Math.round(totalTargetEnergy / (daysRemaining || 90))})`;
+    document.getElementById('lbl-diet-cal-target').innerText = `本日合計 (目標: ${userSettings.targetCal})`;
+    document.getElementById('lbl-diet-p-target').innerText = `たんぱく質 (目標: ${userSettings.targetProtein}g)`;
+    document.getElementById('lbl-steps-target').innerText = `目標達成率 (${userSettings.targetSteps.toLocaleString()}歩)`;
+    document.getElementById('title-progress-bar').innerText = `🎯 -${targetLossKg.toFixed(1)}kg減量 累計エネルギー進捗`;
+    document.getElementById('label-total-target-cal').innerText = `目標: -${totalTargetEnergy.toLocaleString()} kcal`;
+    document.getElementById('chart-weight-title').innerText = `体重推移 vs 理想減量ペース (-${targetLossKg.toFixed(1)}kg)`;
+    document.getElementById('chart-steps-title').innerText = `日次歩数推移 (緑: ${userSettings.targetSteps.toLocaleString()}歩達成)`;
+
+    document.getElementById('metric-today-deficit').innerText = `${todayDeficit > 0 ? '-' : '+'}${Math.abs(todayDeficit)} kcal`;
+    document.getElementById('metric-total-deficit').innerText = `${totalDeficitKcal.toLocaleString()} kcal`;
+    
+    const burntFatKg = (totalDeficitKcal / 7200).toFixed(2);
+    const progressPercent = Math.min(100, Math.max(0, (totalDeficitKcal / totalTargetEnergy) * 100)).toFixed(1);
+    document.getElementById('progress-fat-loss').style.width = `${progressPercent}%`;
+    document.getElementById('label-fat-burnt').innerText = `脂肪換算: -${burntFatKg} kg 燃焼 (${progressPercent}%)`;
+
+    if (balanceDates.length > 0) {
+      const ctxB = document.getElementById('chartBalance').getContext('2d');
+      if (chartBalanceInst) chartBalanceInst.destroy();
+      chartBalanceInst = new Chart(ctxB, {
+        type: 'bar',
+        data: {
+          labels: balanceDates,
+          datasets: [
+            { label: '摂取カロリー', data: intakes, backgroundColor: '#f59e0b', borderRadius: 4 },
+            { label: '消費カロリー', data: expenditures, backgroundColor: '#3b82f6', borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true, suggestedMax: userSettings.tdee + 600 } }
+        }
+      });
+
+      const avgDeficit = Math.round(totalDeficitKcal / Math.max(1, balanceDates.length));
+      document.getElementById('weekly-balance-summary').innerHTML = `
+        ・ 1日平均赤字: <b>約 ${avgDeficit} kcal</b><br>
+        ・ 現在の脂肪減少ペース: <b>週 約 ${(avgDeficit * 7 / 7200).toFixed(2)} kg</b> を維持しています。
+      `;
+    }
+
+    // 1. 体重タブ
+    if (weights.length > 0) {
+      document.getElementById('metric-cur-weight').innerText = `${latestWeight.toFixed(1)} kg`;
+      const emaList = computeEMA(weights);
+      document.getElementById('metric-ema-weight').innerText = `${emaList[emaList.length - 1].toFixed(1)} kg`;
+      
+      const targetWeights = weights.map((_, idx) => {
+        const pace = userSettings.startWeight - (targetLossKg / 90) * idx;
+        return Math.max(userSettings.targetWeight, pace);
+      });
+      
+      const ctxW = document.getElementById('chartWeight').getContext('2d');
+      if (chartWeightInst) chartWeightInst.destroy();
+      chartWeightInst = new Chart(ctxW, {
+        type: 'line',
+        data: {
+          labels: weightDates,
+          datasets: [
+            { label: '実測体重', data: weights, borderColor: '#94a3b8', borderWidth: 1.5, pointRadius: 3 },
+            { label: 'EMAトレンド', data: emaList, borderColor: '#2563eb', borderWidth: 3, pointRadius: 0 },
+            { label: '目標ペース', data: targetWeights, borderColor: '#ef4444', borderDash: [4, 4], borderWidth: 1.5, pointRadius: 0 }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { suggestedMin: userSettings.targetWeight - 2, suggestedMax: userSettings.startWeight + 2 } }
+        }
+      });
+    }
+
+    // 2. 筋トレタブ
+    document.getElementById('metric-workout-count').innerText = `${workoutLogs.length} 回`;
+    if (workoutLogs.length > 0) {
+      const lastW = workoutLogs[workoutLogs.length - 1];
+      document.getElementById('metric-last-workout').innerText = lastW.type.split('（')[0];
+    }
+    const historyContainer = document.getElementById('workout-history');
+    historyContainer.innerHTML = workoutLogs.slice().reverse().slice(0, 10).map(w => `
+      <div class="log-item">
+        <strong>${w.date}</strong>: ${w.type}<br>
+        <span style="color:#64748b;">${w.memo || 'メモなし'}</span>
+      </div>
+    `).join('') || '<div style="color:#94a3b8;">記録がまだありません</div>';
+
+    const wLabels = Object.keys(weeklyWorkouts).slice(-8);
+    const wCounts = wLabels.map(k => weeklyWorkouts[k]);
+    const ctxWo = document.getElementById('chartWorkout').getContext('2d');
+    if (chartWorkoutInst) chartWorkoutInst.destroy();
+    chartWorkoutInst = new Chart(ctxWo, {
+      type: 'bar',
+      data: {
+        labels: wLabels.length > 0 ? wLabels : ['今週'],
+        datasets: [{
+          label: '実施日数',
+          data: wCounts.length > 0 ? wCounts : [workoutLogs.length],
+          backgroundColor: '#3b82f6',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, suggestedMax: 5, ticks: { stepSize: 1 } } }
+      }
+    });
+
+    // 3. 食事タブ
+    if (dietDates.length > 0) {
+      const ctxD = document.getElementById('chartDiet').getContext('2d');
+      if (chartDietInst) chartDietInst.destroy();
+      chartDietInst = new Chart(ctxD, {
+        type: 'line',
+        data: {
+          labels: dietDates,
+          datasets: [
+            {
+              label: 'カロリー (kcal)',
+              data: dietCals,
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              yAxisID: 'yCal',
+              borderWidth: 2,
+              tension: 0.2
+            },
+            {
+              label: 'たんぱく質 (g)',
+              data: dietProteins,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              yAxisID: 'yP',
+              borderWidth: 2,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            yCal: { type: 'linear', position: 'left', suggestedMin: 800, suggestedMax: userSettings.tdee },
+            yP: { type: 'linear', position: 'right', suggestedMin: 40, suggestedMax: userSettings.targetProtein + 30, grid: { drawOnChartArea: false } }
+          }
+        }
+      });
+    }
+
+    // 4. 歩数タブ
+    if (stepsList.length > 0) {
+      document.getElementById('metric-latest-steps').innerText = `${latestSteps.toLocaleString()} 歩`;
+      const rate = Math.min(100, Math.round((latestSteps / userSettings.targetSteps) * 100));
+      document.getElementById('metric-goal-rate').innerText = `${rate} %`;
+
+      const ctxS = document.getElementById('chartSteps').getContext('2d');
+      if (chartStepsInst) chartStepsInst.destroy();
+      chartStepsInst = new Chart(ctxS, {
+        type: 'bar',
+        data: {
+          labels: stepsDates,
+          datasets: [{
+            data: stepsList,
+            backgroundColor: stepsList.map(s => s >= userSettings.targetSteps ? '#16a34a' : '#cbd5e1'),
+            borderRadius: 4
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      });
+    }
+  }
+
+  // --- 一括登録フォーム送信 ---
+  document.getElementById('form-universal').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const d = document.getElementById('modal-date').value;
+    const log = getOrInitLog(d);
+
+    const wVal = parseFloat(document.getElementById('modal-weight').value);
+    if (!isNaN(wVal)) log.weight = wVal;
+
+    const sVal = parseInt(document.getElementById('modal-steps').value, 10);
+    if (!isNaN(sVal)) log.steps = sVal;
+
+    log.meals = {
+      bCal: parseInt(document.getElementById('meal-b-cal').value, 10) || 0,
+      bP:   parseInt(document.getElementById('meal-b-p').value, 10) || 0,
+      lCal: parseInt(document.getElementById('meal-l-cal').value, 10) || 0,
+      lP:   parseInt(document.getElementById('meal-l-p').value, 10) || 0,
+      dCal: parseInt(document.getElementById('meal-d-cal').value, 10) || 0,
+      dP:   parseInt(document.getElementById('meal-d-p').value, 10) || 0,
+      sCal: parseInt(document.getElementById('meal-s-cal').value, 10) || 0,
+      sP:   parseInt(document.getElementById('meal-s-p').value, 10) || 0
+    };
+
+    log.workout = document.getElementById('modal-workout-type').value;
+    log.workoutMemo = document.getElementById('modal-workout-memo').value;
+
+    saveAppData();
+    closeUniversalModal();
+    alert(`${d} のデータを保存しました！`);
+    refreshAllViews();
+  });
+
+  // ================= 🔔 定時リマインダー通知システム =================
+  function updateNotifyButtonUI() {
+    const btn = document.getElementById('btn-toggle-notify');
+    if (!("Notification" in window)) {
+      btn.innerText = "非対応端末";
+      btn.disabled = true;
+      return;
+    }
+    if (Notification.permission === "granted") {
+      btn.innerText = "✅ 通知中";
+      btn.style.background = "#16a34a";
+    } else {
+      btn.innerText = "通知を許可";
+      btn.style.background = "#2563eb";
+    }
+  }
+
+  function toggleNotificationPermission() {
+    if (!("Notification" in window)) {
+      alert("このブラウザ・端末はWeb通知機能に対応していません。");
+      return;
+    }
+    Notification.requestPermission().then(permission => {
+      updateNotifyButtonUI();
+      if (permission === "granted") {
+        new Notification("健康管理アプリ", {
+          body: "リマインダー通知をオンにしました！未入力時に定時通知します。",
+          icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>"
+        });
+      }
+    });
+  }
+
+  // 6:15, 12:15, 19:15, 23:00 の未入力チェック
+  function checkScheduledReminders() {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const today = now.toISOString().split('T')[0];
+    const todayLog = appData.logs[today] || {};
+    const meals = todayLog.meals || {};
+
+    const notifyKey = `notified_${today}_${hours}_${minutes}`;
+    if (sessionStorage.getItem(notifyKey)) return;
+
+    // 06:15 朝食チェック
+    if (hours === 6 && minutes >= 15 && minutes <= 30) {
+      if (!meals.bCal || meals.bCal === 0) {
+        sendNotification("☀️ 朝食の記録リマインダー", "朝食データがまだ入力されていません。写真解析でサッと記録しましょう！");
+        sessionStorage.setItem(notifyKey, "true");
+      }
+    }
+    // 12:15 昼食チェック
+    else if (hours === 12 && minutes >= 15 && minutes <= 30) {
+      if (!meals.lCal || meals.lCal === 0) {
+        sendNotification("🍱 昼食の記録リマインダー", "昼食の記録はお済みですか？午後の目標に向けて記録しましょう。");
+        sessionStorage.setItem(notifyKey, "true");
+      }
+    }
+    // 19:15 夕食チェック
+    else if (hours === 19 && minutes >= 15 && minutes <= 30) {
+      if (!meals.dCal || meals.dCal === 0) {
+        sendNotification("🌙 夕食の記録リマインダー", "夕食データが未入力です。ご飯の量や主菜を記録して1日の収支を締めましょう！");
+        sessionStorage.setItem(notifyKey, "true");
+      }
+    }
+    // 23:00 締めくくりチェック（1日の終わり）
+    else if (hours === 23 && minutes >= 0 && minutes <= 20) {
+      const missing = [];
+      if (todayLog.weight === null) missing.push("体重");
+      if (todayLog.steps === null) missing.push("歩数");
+      if (!todayLog.workout) missing.push("筋トレ");
+
+      if (missing.length > 0) {
+        sendNotification("📊 本日の締めくくりチェック", `今日の【${missing.join("・")}】が未入力です。右下の「＋」ボタンからまとめて登録しましょう！`);
+        sessionStorage.setItem(notifyKey, "true");
+      }
+    }
+  }
+
+  function sendNotification(title, body) {
+    new Notification(title, {
+      body: body,
+      icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>"
+    });
+  }
+
+  setInterval(checkScheduledReminders, 60 * 1000);
+
+  // 初回起動
+  refreshAllViews();
+  updateNotifyButtonUI();
+</script>
+</body>
+</html>
